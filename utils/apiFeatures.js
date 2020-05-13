@@ -20,7 +20,7 @@ class APIFeatures {
 
   sort() {
     if (this.queryString.sort) {
-      const sortBy = this.queryString.sort.split(',').join(' ');
+      const sortBy = this.queryString.sort.split(',').join('');
       this.query = this.query.sort(sortBy);
     } else {
       //if there is no sorting criteria, then default criterion is "createdAt" (-createdAt : descending order)
