@@ -98,6 +98,7 @@ tourSchema.pre('save', function (next) {
 
 //QUERY MIDDLEWARE
 tourSchema.pre(/^find/, function (next) {
+  //regular expression - /^xxx/ : start with xxx
   // tourSchema.pre('find', function (next) {
   this.find({ secretTour: { $ne: true } }); //this object is pointing a current query
   this.start = Date.now();
