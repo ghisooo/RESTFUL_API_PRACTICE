@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
 });
 
 userSchema.pre('save', async function (next) {
@@ -54,6 +59,23 @@ userSchema.pre('save', async function (next) {
   //Delete the passwordConfirm field.
   this.passwordConfirm = undefined; //passwordConfirm is only for the validation. So, we set it as undefined.
 
+  next();
+});
+
+userSchema.pre('save', function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 1000;
+  //Sometimes, it is saved in DB after a new token is created. To escape that unexpected delay problem,
+  // 1000ms is deducted. -> "exports.protect=..."" in authController.js can have a problem.
+  next();
+});
+
+userSchema.pre(/^find/, function (next) {
+  //regex /^find/ : words starting with "find"
+
+  //"this" points to the current query
+  this.find({ active: { $ne: false } });
   next();
 });
 
