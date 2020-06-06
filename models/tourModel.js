@@ -69,20 +69,59 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    startLocation: {
+      //GeoJSON
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+      },
+      coordinates: [Number], //number array - it will be like [0]:lattitude, [1]:longitude
+      address: String,
+      descrption: String,
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+      },
+    ],
   },
   {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
-
+//Virtual populate
+// When you `populate()` the `reviews` virtual, Mongoose will find the
+// first document in the Review model whose `tour` matches this document's
+// `_id` property.
 tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
 });
 
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  localField: '_id',
+  foreignField: 'tour',
+});
+
 //Document MIDDLEWARE: runs before only both .save() and .create(),, Not .insertMany() or update!
 tourSchema.pre('save', function (next) {
-  this.slug = slugify(this.name, { lower: true }); // this object is pointing a current document
+  this.slug = slugify(this.name, { lower: true }); // this object is 4ing a current document
   next();
 });
 
@@ -105,6 +144,14 @@ tourSchema.pre(/^find/, function (next) {
   next();
 });
 
+tourSchema.pre(/^find/, function (next) {
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt', // -"field name" : not showing "field"
+  });
+
+  next();
+});
 tourSchema.post(/^find/, function (docs, next) {
   console.log(`Query took ${Date.now() - this.start} millisecs`);
   next();

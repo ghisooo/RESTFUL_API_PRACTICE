@@ -2,9 +2,16 @@ const express = require('express');
 // const fs = require('fs');
 const tourController = require('../controllers/tourController');
 const authController = require('../controllers/authController');
+const reviewRouter = require('../routes/reviewRoutes');
+
 const router = express.Router(); //express.Router() is a middleware function.
 
 // router.param('id', tourController.checkID);
+
+//POST /tour/234fad4/reviews
+//GET /tour/234fad4/reviews
+
+router.use('/:tourId/reviews', reviewRouter);
 
 router
   .route('/top-5-cheap')
