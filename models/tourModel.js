@@ -36,6 +36,7 @@ const tourSchema = new mongoose.Schema(
       default: 4.5,
       min: [1, 'Rating must be above 1.0'],
       max: [5, 'Rating must be below 5.0'],
+      set: (val) => Math.round(val * 10) / 10, // e.g. 4.66666 => 4.7
     },
     ratingsQuantity: { type: Number, default: 0 },
     price: {
@@ -105,6 +106,12 @@ const tourSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
+
+// tourSchema.index({ price: 1 }); //1 : ascending order
+tourSchema.index({ price: 1, ratingsAverage: -1 }); //1 : ascending order
+tourSchema.index({ slug: 1 });
+tourSchema.index({ startLocation: '2dsphere' });
+
 //Virtual populate
 // When you `populate()` the `reviews` virtual, Mongoose will find the
 // first document in the Review model whose `tour` matches this document's
@@ -157,14 +164,14 @@ tourSchema.post(/^find/, function (docs, next) {
   next();
 });
 
-//AGGREGATION MIDDLEWARE
-tourSchema.pre('aggregate', function (next) {
-  this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
+// //AGGREGATION MIDDLEWARE
+// tourSchema.pre('aggregate', function (next) {
+//   this.pipeline().unshift({ $match: { secretTour: { $ne: true } } });
 
-  console.log(this.pipeline()); //this obj is pointing a current aggregation object
+//   console.log(this.pipeline()); //this obj is pointing a current aggregation object
 
-  next();
-});
+//   next();
+// });
 
 const Tour = mongoose.model('Tour', tourSchema);
 

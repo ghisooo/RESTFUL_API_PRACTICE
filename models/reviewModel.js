@@ -1,5 +1,6 @@
 // review / rating / createdAt / ref to tour / ref to user
 const mongoose = require('mongoose');
+const Tour = require('./tourModel');
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -33,6 +34,8 @@ const reviewSchema = new mongoose.Schema(
   }
 );
 
+reviewSchema.index({ tour: 1, user: 1 }, { unique: true });
+
 reviewSchema.pre(/^find/, function (next) {
   // this.populate({
   //   path: 'tour',
@@ -47,6 +50,54 @@ reviewSchema.pre(/^find/, function (next) {
   });
 
   next();
+});
+
+reviewSchema.statics.calcAverageRatings = async function (tourId) {
+  const stats = await this.aggregate([
+    {
+      $match: { tour: tourId },
+    },
+    {
+      $group: {
+        _id: '$tour',
+        nRatings: { $sum: 1 },
+        avgRating: { $avg: '$rating' },
+      },
+    },
+  ]);
+  console.log(stats);
+
+  if (stats.length > 0) {
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsQuantity: stats[0].nRatings,
+      ratingsAverage: stats[0].avgRating,
+    });
+  } else {
+    await Tour.findByIdAndUpdate(tourId, {
+      ratingsQuantity: 0,
+      ratingsAverage: 4.5,
+    });
+  }
+};
+
+reviewSchema.post('save', function () {
+  //when we create new review, it includes tour Id here...
+  // this points to current review.
+  this.constructor.calcAverageRatings(this.tour); // "this.constructor" points the current model.(Review model)
+});
+
+//findByIdAndUpdate
+//findByIdAndDelete
+//***findByIdAndDelete(id) is a shorthand for findOneAndDelete({ _id: id }).
+// When we update tour review, it doesn't have tour Id info, so we need to implement like these (pre and post)
+reviewSchema.pre(/^findOneAnd/, async function (next) {
+  this.r = await this.findOne(); //current document (current review document)
+  next();
+});
+
+reviewSchema.post(/^findOneAnd/, function () {
+  // await this.findOne(); does NOT work here, query has already executed at this point.
+  this.r.constructor.calcAverageRatings(this.r.tour); //current document's model -> calcAverageRatings.
 });
 
 const Review = mongoose.model('Review', reviewSchema);
